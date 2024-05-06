@@ -11,16 +11,16 @@ package cn.allbs.sse.controller;
   
 import org.springframework.http.MediaType;  
 import org.springframework.web.bind.annotation.GetMapping;  
+import org.springframework.web.bind.annotation.RequestParam;  
 import org.springframework.web.bind.annotation.RestController;  
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;  
   
-import java.io.IOException;  
 import java.util.concurrent.ExecutorService;  
 import java.util.concurrent.Executors;  
   
 /**  
  * 类 SSEController  
- * @author ChenQi  
+ * * @author ChenQi  
  * @date 2024/5/6  
  */@RestController  
 public class SSEController {  
@@ -28,24 +28,29 @@ public class SSEController {
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();  
   
     @GetMapping(value = "/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)  
-    public SseEmitter streamEvents() {  
+    public SseEmitter receiveText(@RequestParam String question) {  
         SseEmitter emitter = new SseEmitter();  
         executorService.execute(() -> {  
             try {  
-                for (int i = 0; i < 10; i++) {  
-                    // 发送事件数据到客户端  
-                    emitter.send("Event " + i);  
-                    // 模拟每秒发送一个事件  
-                    Thread.sleep(1000);  
+                // 处理接收到的文本内容  
+                String processedText = processText(question);  
+  
+                // 将处理结果逐步发送给客户端  
+                for (int i = 1; i <= 10; i++) {  
+                    emitter.send(processedText.replace("问题", "回答") + i);  
+                    Thread.sleep(1000); // 模拟每秒发送一个字符  
                 }  
-                // 发送完毕，关闭连接  
-                emitter.complete();  
-            } catch (IOException | InterruptedException e) {  
-                // 发生错误，关闭连接  
-                emitter.completeWithError(e);  
+                emitter.complete(); // 发送完毕，关闭连接  
+            } catch (Exception e) {  
+                emitter.completeWithError(e); // 发生错误，关闭连接  
             }  
         });  
         return emitter;  
+    }  
+  
+    // 在实际应用中，这里可以添加对文本内容的具体处理逻辑  
+    private String processText(String text) {  
+        return "这是问题:" + text;  
     }  
 }
 ```
@@ -55,41 +60,45 @@ public class SSEController {
 <html>  
 <head>  
     <title>SSE Demo</title>  
+    <meta charset="utf-8">  
     <script type="text/javascript">  
         var eventSource;  
-  
-        function startSSE() {  
-            eventSource = new EventSource("/events");  
-            eventSource.onmessage = function(event) {  
-                var textField = document.getElementById("text-field");  
-                textField.value += (event.data + ", ");  
-            };  
-            eventSource.onerror = function(event) {  
-                console.error("EventSource failed:", event);  
-                eventSource.close();  
-            };  
-        }  
   
         function stopSSE() {  
             if (eventSource) {  
                 eventSource.close();  
             }  
         }  
+  
+        function sendText() {  
+            var inputField = document.getElementById("input-field");  
+            var text = inputField.value.trim();  
+            if (text !== "") {  
+                eventSource = new EventSource("/events?question=" + text);  
+                eventSource.onmessage = function(event) {  
+                    var textField = document.getElementById("result-field");  
+                    textField.value += (event.data + ", ");  
+                };  
+                eventSource.onerror = function(event) {  
+                    console.error("EventSource failed:", event);  
+                    eventSource.close();  
+                };  
+            }  
+        }  
     </script>  
 </head>  
 <body>  
-<button onclick="startSSE()">Start SSE</button>  
-<textarea id="text-field" rows="10" cols="50" readonly></textarea>  
+<input type="text" id="input-field" placeholder="输入内容">  
+<button onclick="sendText()">发送</button><br><br>  
+<textarea id="result-field" rows="10" cols="50" readonly></textarea><br><br>  
 <button onclick="stopSSE()">Stop SSE</button>  
 </body>  
 </html>
 ```
 # 访问页面
 http://{ip}:{port}/index.html
-
-![image.png](https://nas.allbs.cn:9006/cloudpic/2024/05/d1b6d1e1071cfae42ff6dbba271cbce1.png)
-
+![image.png](https://nas.allbs.cn:9006/cloudpic/2024/05/c872ec5e4df64ff445475a4fd0444b73.png)
 # 实现效果
-![recording.gif](https://nas.allbs.cn:9006/cloudpic/2024/05/2a9d00654bc0bdffbd573ec408200e63.gif)
+![recording.gif](https://nas.allbs.cn:9006/cloudpic/2024/05/01629d5c3f96fd113e635ef9fa543d30.gif)
 # demo地址
 https://github.com/chenqi92/spring-sse.git
