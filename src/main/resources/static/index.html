@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SSE Demo</title>
+    <script type="text/javascript">
+        var eventSource;
+
+        function startSSE() {
+            eventSource = new EventSource("/events");
+            eventSource.onmessage = function(event) {
+                var textField = document.getElementById("text-field");
+                textField.value += (event.data + ", ");
+            };
+            eventSource.onerror = function(event) {
+                console.error("EventSource failed:", event);
+                eventSource.close();
+            };
+        }
+
+        function stopSSE() {
+            if (eventSource) {
+                eventSource.close();
+            }
+        }
+    </script>
+</head>
+<body>
+<button onclick="startSSE()">Start SSE</button>
+<textarea id="text-field" rows="10" cols="50" readonly></textarea>
+<button onclick="stopSSE()">Stop SSE</button>
+</body>
+</html>

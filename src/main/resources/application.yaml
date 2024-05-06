@@ -1,0 +1,5 @@
+spring:
+  application:
+    name: spring-sse
+server:
+  port: 8888
