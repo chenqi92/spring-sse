@@ -2,31 +2,37 @@
 <html>
 <head>
     <title>SSE Demo</title>
+    <meta charset="utf-8">
     <script type="text/javascript">
         var eventSource;
-
-        function startSSE() {
-            eventSource = new EventSource("/events");
-            eventSource.onmessage = function(event) {
-                var textField = document.getElementById("text-field");
-                textField.value += (event.data + ", ");
-            };
-            eventSource.onerror = function(event) {
-                console.error("EventSource failed:", event);
-                eventSource.close();
-            };
-        }
 
         function stopSSE() {
             if (eventSource) {
                 eventSource.close();
             }
         }
+
+        function sendText() {
+            var inputField = document.getElementById("input-field");
+            var text = inputField.value.trim();
+            if (text !== "") {
+                eventSource = new EventSource("/events?question=" + text);
+                eventSource.onmessage = function(event) {
+                    var textField = document.getElementById("result-field");
+                    textField.value += (event.data + ", ");
+                };
+                eventSource.onerror = function(event) {
+                    console.error("EventSource failed:", event);
+                    eventSource.close();
+                };
+            }
+        }
     </script>
 </head>
 <body>
-<button onclick="startSSE()">Start SSE</button>
-<textarea id="text-field" rows="10" cols="50" readonly></textarea>
+<input type="text" id="input-field" placeholder="输入内容">
+<button onclick="sendText()">发送</button><br><br>
+<textarea id="result-field" rows="10" cols="50" readonly></textarea><br><br>
 <button onclick="stopSSE()">Stop SSE</button>
 </body>
 </html>
